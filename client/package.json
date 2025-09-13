@@ -1,0 +1,31 @@
+{
+  "name": "proctor-client",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "@tensorflow/tfjs": "^4.6.0",
+    "@tensorflow-models/face-landmarks-detection": "^1.0.2",
+    "@tensorflow-models/coco-ssd": "^2.2.2",
+    "regenerator-runtime": "^0.13.9",
+    "axios": "^1.4.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

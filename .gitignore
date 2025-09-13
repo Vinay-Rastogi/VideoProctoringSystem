@@ -1,0 +1,66 @@
+# -------------------------
+# Node / Backend
+# -------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Server uploads (recorded videos)
+server/uploads/
+server/uploads/**
+
+# Logs
+logs
+*.log
+*.log.*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+
+# OS
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Frontend / React
+# -------------------------
+client/node_modules/
+client/build/
+client/.env
+client/.env.local
+client/.env.development.local
+client/.env.test.local
+client/.env.production.local
+
+# Cache
+client/.cache/
+client/.next/
+client/out/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+*.tgz
+*.gz
+*.zip
+
+# Optional: if you have FFmpeg output temp files
+*.mp4
+*.webm
+*.mkv
