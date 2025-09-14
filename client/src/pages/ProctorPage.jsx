@@ -6,14 +6,19 @@ import DetectionCanvas from "../components/DetectionCanvas";
 import EventLog from "../components/EventLog";
 import ControlPanel from "../components/ControlPanel";
 
-const ProctorPage = () => {
+const ProctorPage = ({ candidateName }) => {
   const videoRef = useRef();
   const [events, setEvents] = useState([]);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recordedChunks, setRecordedChunks] = useState([]);
 
   const logEvent = (type, meta = {}) => {
-    const ev = { type, at: new Date().toISOString(), meta };
+    const ev = { 
+      type, 
+      at: new Date().toISOString(), 
+      meta, 
+      candidateName: candidateName || "Test Candidate" 
+    };
     setEvents(prev => [ev, ...prev]);
     API.post("/events", ev).catch(console.warn);
   };
@@ -26,7 +31,6 @@ const ProctorPage = () => {
     videoRef.current.play();
     logEvent("CameraStarted");
 
-    // Start recording
     const recorder = new MediaRecorder(stream);
     setRecordedChunks([]);
     recorder.ondataavailable = (e) => {
@@ -40,13 +44,12 @@ const ProctorPage = () => {
     videoRef.current.srcObject?.getTracks().forEach(track => track.stop());
     logEvent("CameraStopped");
 
-    // Stop recording and upload
     if (mediaRecorder) {
       mediaRecorder.onstop = async () => {
         const blob = new Blob(recordedChunks, { type: "video/webm" });
         const formData = new FormData();
         formData.append("video", blob, "recording.webm");
-        formData.append("candidateName", "Test Candidate");
+        formData.append("candidateName", candidateName || "Test Candidate");
         try {
           await API.post("/upload-video", formData, {
             headers: { "Content-Type": "multipart/form-data" }
@@ -62,11 +65,12 @@ const ProctorPage = () => {
   };
 
   const downloadReport = async () => {
-    const resp = await API.get("/report?candidate=Test Candidate", { responseType: "blob" });
+    if (!candidateName) return alert("Enter candidate name first");
+    const resp = await API.get(`/report?candidate=${encodeURIComponent(candidateName)}`, { responseType: "blob" });
     const url = URL.createObjectURL(new Blob([resp.data]));
     const a = document.createElement("a");
     a.href = url;
-    a.download = "report.pdf";
+    a.download = `report-${candidateName.replace(/\s+/g, "_")}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
   };
