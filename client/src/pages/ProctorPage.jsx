@@ -12,6 +12,7 @@ const ProctorPage = ({ candidateName }) => {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recordedChunks, setRecordedChunks] = useState([]);
 
+  // Logs events both locally and to the server
   const logEvent = (type, meta = {}) => {
     const ev = { 
       type, 
@@ -23,8 +24,10 @@ const ProctorPage = ({ candidateName }) => {
     API.post("/events", ev).catch(console.warn);
   };
 
+  // Hook for real-time detection
   const { modelsLoaded, faces, objects } = useDetection(videoRef, logEvent);
 
+  // Start camera + recording
   const startCamera = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     videoRef.current.srcObject = stream;
@@ -40,6 +43,7 @@ const ProctorPage = ({ candidateName }) => {
     setMediaRecorder(recorder);
   };
 
+  // Stop camera + upload recording
   const stopCamera = () => {
     videoRef.current.srcObject?.getTracks().forEach(track => track.stop());
     logEvent("CameraStopped");
@@ -64,15 +68,35 @@ const ProctorPage = ({ candidateName }) => {
     }
   };
 
+  // Download report for current candidate
   const downloadReport = async () => {
     if (!candidateName) return alert("Enter candidate name first");
-    const resp = await API.get(`/report?candidate=${encodeURIComponent(candidateName)}`, { responseType: "blob" });
-    const url = URL.createObjectURL(new Blob([resp.data]));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `report-${candidateName.replace(/\s+/g, "_")}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const resp = await API.get(`/report?candidate=${encodeURIComponent(candidateName)}`, { responseType: "blob" });
+      const url = URL.createObjectURL(new Blob([resp.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `report-${candidateName.replace(/\s+/g, "_")}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download report", err);
+    }
+  };
+
+  // Download report for ALL candidates
+  const downloadAllLogs = async () => {
+    try {
+      const resp = await API.get("/report/all", { responseType: "blob" });
+      const url = URL.createObjectURL(new Blob([resp.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "all-candidates-report.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download all logs", err);
+    }
   };
 
   return (
@@ -84,6 +108,7 @@ const ProctorPage = ({ candidateName }) => {
           onStart={startCamera}
           onStop={stopCamera}
           onDownload={downloadReport}
+          onDownloadAll={downloadAllLogs} // ✅ added
           disabled={!modelsLoaded}
         />
       </div>

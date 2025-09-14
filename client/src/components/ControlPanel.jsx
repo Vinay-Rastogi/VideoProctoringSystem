@@ -1,10 +1,11 @@
 import React from "react";
 
-const ControlPanel = ({ onStart, onStop, onDownload, disabled }) => (
-  <div style={{ marginTop: 10 }}>
-    <button onClick={onStart} disabled={disabled}>Start Recording</button>
-    <button onClick={onStop} style={{ marginLeft: 8 }}>Stop Recording</button>
-    <button onClick={onDownload} style={{ marginLeft: 8 }}>Download Report</button>
+const ControlPanel = ({ onStart, onStop, onDownload, onDownloadAll, disabled }) => (
+  <div style={{ display: "flex", gap: "10px", marginTop: "1rem", flexWrap: "wrap" }}>
+    <button onClick={onStart} disabled={disabled}>Start Camera</button>
+    <button onClick={onStop} disabled={disabled}>Stop Camera</button>
+    <button onClick={onDownload}>Download Candidate Report</button>
+    <button onClick={onDownloadAll}>Download All Logs</button> {/* ✅ new */}
   </div>
 );
 

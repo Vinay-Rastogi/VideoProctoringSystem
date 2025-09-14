@@ -22,10 +22,11 @@ exports.createEvent = async (req, res) => {
 exports.getEvents = async (req, res) => {
   try {
     const candidate = req.query.candidate;
-    const filter = candidate ? { candidateName: candidate } : {};
+    const filter = candidate ? { candidateName: candidate } : {}; // ✅ all events if no candidate
     const events = await Event.find(filter).sort({ at: -1 }).limit(1000);
     res.json(events);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 };
+
