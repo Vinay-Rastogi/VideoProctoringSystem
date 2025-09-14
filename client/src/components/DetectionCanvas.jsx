@@ -1,50 +1,80 @@
-import React, { useRef, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
-const DetectionCanvas = ({ videoRef, faces = [], objects = [] }) => {
+const DetectionCanvas = ({ videoRef, faces, objects }) => {
   const canvasRef = useRef();
 
   useEffect(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-
+    const ctx = canvasRef.current.getContext("2d");
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const draw = () => {
+      if (!video || video.readyState < 2) {
+        requestAnimationFrame(draw);
+        return;
+      }
 
-    // Draw video frame
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // Match canvas size to displayed video size
+      const canvas = canvasRef.current;
+      const videoWidth = video.videoWidth;
+      const videoHeight = video.videoHeight;
 
-    // ✅ Draw face keypoints (new API)
-    ctx.fillStyle = "rgba(0,255,0,0.6)";
-    faces.forEach(face => {
-      if (!face.keypoints) return;
-      face.keypoints.forEach(p => {
-        ctx.fillRect(p.x, p.y, 1.5, 1.5);
+      canvas.width = video.clientWidth;   // 👈 displayed width
+      canvas.height = video.clientHeight; // 👈 displayed height
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Scale factors (raw video → displayed canvas)
+      const scaleX = canvas.width / videoWidth;
+      const scaleY = canvas.height / videoHeight;
+
+      // 🎯 Draw face bounding boxes
+      faces.forEach((face) => {
+        const xs = face.keypoints.map((p) => p.x * scaleX);
+        const ys = face.keypoints.map((p) => p.y * scaleY);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const maxX = Math.max(...xs);
+        const maxY = Math.max(...ys);
+
+        ctx.strokeStyle = "lime";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
       });
-    });
 
-    // ✅ Draw object detection boxes
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
-    ctx.font = "14px Arial";
-    objects.forEach(obj => {
-      ctx.strokeRect(obj.bbox[0], obj.bbox[1], obj.bbox[2], obj.bbox[3]);
-      ctx.fillStyle = "red";
-      ctx.fillText(`${obj.class} ${(obj.score * 100).toFixed(0)}%`, obj.bbox[0], obj.bbox[1] - 5);
-    });
+      // 🎯 Draw suspicious objects
+      objects.forEach((obj) => {
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+
+        // Scale bbox
+        const [x, y, w, h] = obj.bbox;
+        ctx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "red";
+        ctx.fillText(
+          obj.class,
+          x * scaleX,
+          y * scaleY > 20 ? y * scaleY - 5 : 10
+        );
+      });
+
+      requestAnimationFrame(draw);
+    };
+
+    draw();
   }, [videoRef, faces, objects]);
 
   return (
     <canvas
       ref={canvasRef}
       style={{
-        position: "relative",
-        display: "block",
-        marginTop: 8,
-        maxWidth: "100%",
+        position: "absolute", // ✅ overlay on video
+        top: 0,
+        left: 0,
+        width: "100%", // auto-resizes with video
+        height: "100%",
+        pointerEvents: "none", // ✅ allows clicks to pass through
       }}
     />
   );
