@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import API from "../api/api";
 import useDetection from "../hooks/useDetection";
 import VideoPlayer from "../components/VideoPlayer";
@@ -11,25 +11,53 @@ const ProctorPage = ({ candidateName }) => {
   const [events, setEvents] = useState([]);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recordedChunks, setRecordedChunks] = useState([]);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [sessionStarted, setSessionStarted] = useState(false);
+  const [startTime, setStartTime] = useState(null); // ✅ new
+  const [elapsed, setElapsed] = useState("0:00"); // ✅ formatted string
 
-  // Logs events both locally and to the server
+  // ⏱️ Update elapsed time every second when active
+  useEffect(() => {
+    if (!sessionStarted || sessionEnded) return;
+    const interval = setInterval(() => {
+      if (startTime) {
+        const diffMs = Date.now() - startTime;
+        const mins = Math.floor(diffMs / 60000);
+        const secs = Math.floor((diffMs % 60000) / 1000);
+        setElapsed(`${mins}:${secs.toString().padStart(2, "0")}`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sessionStarted, sessionEnded, startTime]);
+
   const logEvent = (type, meta = {}) => {
-    const ev = { 
-      type, 
-      at: new Date().toISOString(), 
-      meta, 
-      candidateName: candidateName || "Test Candidate" 
+    if (sessionEnded) return;
+    const ev = {
+      type,
+      at: new Date().toISOString(),
+      meta,
+      candidateName: candidateName || "Test Candidate",
     };
-    setEvents(prev => [ev, ...prev]);
+    setEvents((prev) => [ev, ...prev]);
     API.post("/events", ev).catch(console.warn);
   };
 
-  // Hook for real-time detection
-  const { modelsLoaded, faces, objects } = useDetection(videoRef, logEvent);
+  const { modelsLoaded, faces, objects } = useDetection(
+    videoRef,
+    logEvent,
+    !sessionEnded
+  );
 
-  // Start camera + recording
   const startCamera = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    setSessionEnded(false);
+    setSessionStarted(true);
+    setStartTime(Date.now()); // ✅ store start time
+    setElapsed("0:00");
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
     videoRef.current.srcObject = stream;
     videoRef.current.play();
     logEvent("CameraStarted");
@@ -37,15 +65,15 @@ const ProctorPage = ({ candidateName }) => {
     const recorder = new MediaRecorder(stream);
     setRecordedChunks([]);
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) setRecordedChunks(prev => [...prev, e.data]);
+      if (e.data.size > 0)
+        setRecordedChunks((prev) => [...prev, e.data]);
     };
     recorder.start();
     setMediaRecorder(recorder);
   };
 
-  // Stop camera + upload recording
   const stopCamera = () => {
-    videoRef.current.srcObject?.getTracks().forEach(track => track.stop());
+    videoRef.current.srcObject?.getTracks().forEach((track) => track.stop());
     logEvent("CameraStopped");
 
     if (mediaRecorder) {
@@ -56,7 +84,7 @@ const ProctorPage = ({ candidateName }) => {
         formData.append("candidateName", candidateName || "Test Candidate");
         try {
           await API.post("/upload-video", formData, {
-            headers: { "Content-Type": "multipart/form-data" }
+            headers: { "Content-Type": "multipart/form-data" },
           });
           logEvent("VideoUploaded");
         } catch (err) {
@@ -68,47 +96,74 @@ const ProctorPage = ({ candidateName }) => {
     }
   };
 
-  // Download report for current candidate
-  const downloadReport = async () => {
-    if (!candidateName) return alert("Enter candidate name first");
-    try {
-      const resp = await API.get(`/report?candidate=${encodeURIComponent(candidateName)}`, { responseType: "blob" });
-      const url = URL.createObjectURL(new Blob([resp.data]));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `report-${candidateName.replace(/\s+/g, "_")}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Failed to download report", err);
-    }
+  const endSession = () => {
+    stopCamera();
+    logEvent("SessionEnded", { message: "Candidate ended session" });
+    setSessionEnded(true);
   };
 
-  // Download report for ALL candidates
-  const downloadAllLogs = async () => {
-    try {
-      const resp = await API.get("/report/all", { responseType: "blob" });
-      const url = URL.createObjectURL(new Blob([resp.data]));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "all-candidates-report.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Failed to download all logs", err);
-    }
+  const downloadReport = async () => {
+    if (!candidateName) return alert("Enter candidate name first");
+    const resp = await API.get(`/report?candidate=${encodeURIComponent(candidateName)}`, {
+      responseType: "blob",
+    });
+    const url = URL.createObjectURL(new Blob([resp.data]));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `report-${candidateName.replace(/\s+/g, "_")}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
+
+  const downloadAllLogs = async () => {
+    const resp = await API.get("/report/all", { responseType: "blob" });
+    const url = URL.createObjectURL(new Blob([resp.data]));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "all-candidates-report.pdf";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ✅ Choose color dynamically
+  const statusColor = !sessionStarted
+    ? "black"
+    : sessionEnded
+    ? "red"
+    : "green";
+
+  const statusText = !sessionStarted
+    ? "Session Not Started"
+    : sessionEnded
+    ? "Session Ended"
+    : `Session Active — ${elapsed} elapsed`;
 
   return (
     <div style={{ display: "flex", gap: 16 }}>
       <div>
+        {/* ✅ Status Indicator with Timer */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              backgroundColor: statusColor,
+              marginRight: 8,
+            }}
+          ></span>
+          <span style={{ fontWeight: "bold" }}>{statusText}</span>
+        </div>
+
         <VideoPlayer videoRef={videoRef} />
         <DetectionCanvas videoRef={videoRef} faces={faces} objects={objects} />
         <ControlPanel
           onStart={startCamera}
           onStop={stopCamera}
+          onEndSession={endSession}
           onDownload={downloadReport}
-          onDownloadAll={downloadAllLogs} // ✅ added
+          onDownloadAll={downloadAllLogs}
           disabled={!modelsLoaded}
         />
       </div>
