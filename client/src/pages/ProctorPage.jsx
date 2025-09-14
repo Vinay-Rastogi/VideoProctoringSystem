@@ -45,19 +45,19 @@ const ProctorPage = ({ candidateName }) => {
 
     // 🚨 Real-time alerts
     if (type === "DrowsinessDetected") {
-      setAlertMessage("⚠️ Candidate may be drowsy (eyes closed > 1.5s)");
-      setTimeout(() => setAlertMessage(null), 3000);
+      showAlert("⚠️ Candidate may be drowsy (eyes closed > 1.5s)");
     }
-
     if (type === "SuspiciousObject" && meta?.class) {
-      setAlertMessage(`⚠️ Suspicious Object Detected: ${meta.class}`);
-      setTimeout(() => setAlertMessage(null), 3000);
+      showAlert(`⚠️ Suspicious Object Detected: ${meta.class}`);
     }
-
     if (type === "LookingAway") {
-      setAlertMessage("⚠️ Candidate is not looking at the screen (>5s)");
-      setTimeout(() => setAlertMessage(null), 3000);
+      showAlert("⚠️ Candidate is not looking at the screen (>5s)");
     }
+  };
+
+  const showAlert = (msg) => {
+    setAlertMessage(msg);
+    setTimeout(() => setAlertMessage(null), 3000);
   };
 
   // ✅ Pass !sessionEnded to stop detection when session ends
@@ -107,10 +107,16 @@ const ProctorPage = ({ candidateName }) => {
     }
   };
 
+  // ✅ End session & refresh page
   const endSession = () => {
     stopCamera();
     logEvent("SessionEnded", { message: "Candidate ended session" });
     setSessionEnded(true);
+
+    // 🔄 Full page refresh after 1 second to reset everything
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const downloadReport = async () => {
@@ -136,8 +142,7 @@ const ProctorPage = ({ candidateName }) => {
     URL.revokeObjectURL(url);
   };
 
-  // ✅ Status dot color + label
-  const statusColor = !sessionStarted ? "black" : sessionEnded ? "red" : "green";
+  const statusColor = !sessionStarted ? "gray" : sessionEnded ? "red" : "green";
   const statusText = !sessionStarted
     ? "Session Not Started"
     : sessionEnded
@@ -145,54 +150,90 @@ const ProctorPage = ({ candidateName }) => {
     : `Session Active — ${elapsed} elapsed`;
 
   return (
-    <div style={{ display: "flex", gap: 16 }}>
-      <div>
-        {/* ✅ Status Indicator */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              backgroundColor: statusColor,
-              marginRight: 8,
-            }}
-          ></span>
-          <span style={{ fontWeight: "bold" }}>{statusText}</span>
-        </div>
+    <div style={{ fontFamily: "Segoe UI, sans-serif", background: "#f4f5f7", minHeight: "100vh", padding: "20px" }}>
+      {/* Top Header */}
+      <header style={{
+        background: "#1e3a8a",
+        color: "white",
+        padding: "15px 25px",
+        borderRadius: "10px",
+        marginBottom: "20px",
+        textAlign: "center",
+        boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+      }}>
+        <h1 style={{ margin: 0, fontSize: "28px" }}>🎥 AI Proctoring Dashboard</h1>
+      </header>
 
-        {/* ✅ Real-time alert banner */}
-        {alertMessage && (
-          <div
-            style={{
+      {/* Main Content */}
+      <div style={{ display: "flex", gap: "20px", justifyContent: "space-between" }}>
+        {/* Left Panel */}
+        <div style={{
+          flex: 2,
+          background: "white",
+          padding: "20px",
+          borderRadius: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+        }}>
+          {/* Status Indicator */}
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                backgroundColor: statusColor,
+                marginRight: 10,
+                border: "2px solid #ddd"
+              }}
+            ></span>
+            <span style={{ fontWeight: "bold", fontSize: "18px" }}>{statusText}</span>
+          </div>
+
+          {/* Real-time alert banner */}
+          {alertMessage && (
+            <div style={{
               backgroundColor: "orange",
               color: "black",
-              padding: "6px 10px",
-              marginBottom: "8px",
-              borderRadius: "6px",
+              padding: "10px",
+              marginBottom: "15px",
+              borderRadius: "8px",
+              textAlign: "center",
               fontWeight: "bold",
-            }}
-          >
-            {alertMessage}
-          </div>
-        )}
+              fontSize: "16px",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+            }}>
+              {alertMessage}
+            </div>
+          )}
 
-        <VideoPlayer videoRef={videoRef} />
-        <DetectionCanvas videoRef={videoRef} faces={faces} objects={objects} />
-        <ControlPanel
-          onStart={startCamera}
-          onStop={stopCamera}
-          onEndSession={endSession}
-          onDownload={downloadReport}
-          onDownloadAll={downloadAllLogs}
-          disabled={!modelsLoaded}
-        />
-      </div>
+          <VideoPlayer videoRef={videoRef} />
+          <DetectionCanvas videoRef={videoRef} faces={faces} objects={objects} />
+          <ControlPanel
+            onStart={startCamera}
+            onStop={stopCamera}
+            onEndSession={endSession}
+            onDownload={downloadReport}
+            onDownloadAll={downloadAllLogs}
+            disabled={!modelsLoaded}
+          />
+        </div>
 
-      <div style={{ width: 360 }}>
-        <h3>Events</h3>
-        <EventLog events={events} />
+        {/* Right Panel */}
+        <div style={{
+          flex: 1,
+          background: "white",
+          padding: "20px",
+          borderRadius: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          maxHeight: "80vh",
+          overflowY: "auto"
+        }}>
+          <h3 style={{ borderBottom: "2px solid #eee", paddingBottom: "8px", marginBottom: "15px" }}>
+            📜 Event Log
+          </h3>
+          <EventLog events={events} />
+        </div>
       </div>
     </div>
   );
