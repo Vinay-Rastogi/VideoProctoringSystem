@@ -13,10 +13,11 @@ const ProctorPage = ({ candidateName }) => {
   const [recordedChunks, setRecordedChunks] = useState([]);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [startTime, setStartTime] = useState(null); // ✅ new
-  const [elapsed, setElapsed] = useState("0:00"); // ✅ formatted string
+  const [startTime, setStartTime] = useState(null);
+  const [elapsed, setElapsed] = useState("0:00");
+  const [alertMessage, setAlertMessage] = useState(null);
 
-  // ⏱️ Update elapsed time every second when active
+  // ⏱ Update elapsed time every second while session is active
   useEffect(() => {
     if (!sessionStarted || sessionEnded) return;
     const interval = setInterval(() => {
@@ -30,6 +31,7 @@ const ProctorPage = ({ candidateName }) => {
     return () => clearInterval(interval);
   }, [sessionStarted, sessionEnded, startTime]);
 
+  // ✅ Unified event logger with real-time alerts
   const logEvent = (type, meta = {}) => {
     if (sessionEnded) return;
     const ev = {
@@ -40,24 +42,34 @@ const ProctorPage = ({ candidateName }) => {
     };
     setEvents((prev) => [ev, ...prev]);
     API.post("/events", ev).catch(console.warn);
+
+    // 🚨 Real-time alerts
+    if (type === "DrowsinessDetected") {
+      setAlertMessage("⚠️ Candidate may be drowsy (eyes closed > 1.5s)");
+      setTimeout(() => setAlertMessage(null), 3000);
+    }
+
+    if (type === "SuspiciousObject" && meta?.class) {
+      setAlertMessage(`⚠️ Suspicious Object Detected: ${meta.class}`);
+      setTimeout(() => setAlertMessage(null), 3000);
+    }
+
+    if (type === "LookingAway") {
+      setAlertMessage("⚠️ Candidate is not looking at the screen (>5s)");
+      setTimeout(() => setAlertMessage(null), 3000);
+    }
   };
 
-  const { modelsLoaded, faces, objects } = useDetection(
-    videoRef,
-    logEvent,
-    !sessionEnded
-  );
+  // ✅ Pass !sessionEnded to stop detection when session ends
+  const { modelsLoaded, faces, objects } = useDetection(videoRef, logEvent, !sessionEnded);
 
   const startCamera = async () => {
     setSessionEnded(false);
     setSessionStarted(true);
-    setStartTime(Date.now()); // ✅ store start time
+    setStartTime(Date.now());
     setElapsed("0:00");
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     videoRef.current.srcObject = stream;
     videoRef.current.play();
     logEvent("CameraStarted");
@@ -65,8 +77,7 @@ const ProctorPage = ({ candidateName }) => {
     const recorder = new MediaRecorder(stream);
     setRecordedChunks([]);
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0)
-        setRecordedChunks((prev) => [...prev, e.data]);
+      if (e.data.size > 0) setRecordedChunks((prev) => [...prev, e.data]);
     };
     recorder.start();
     setMediaRecorder(recorder);
@@ -125,13 +136,8 @@ const ProctorPage = ({ candidateName }) => {
     URL.revokeObjectURL(url);
   };
 
-  // ✅ Choose color dynamically
-  const statusColor = !sessionStarted
-    ? "black"
-    : sessionEnded
-    ? "red"
-    : "green";
-
+  // ✅ Status dot color + label
+  const statusColor = !sessionStarted ? "black" : sessionEnded ? "red" : "green";
   const statusText = !sessionStarted
     ? "Session Not Started"
     : sessionEnded
@@ -141,7 +147,7 @@ const ProctorPage = ({ candidateName }) => {
   return (
     <div style={{ display: "flex", gap: 16 }}>
       <div>
-        {/* ✅ Status Indicator with Timer */}
+        {/* ✅ Status Indicator */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
           <span
             style={{
@@ -156,6 +162,22 @@ const ProctorPage = ({ candidateName }) => {
           <span style={{ fontWeight: "bold" }}>{statusText}</span>
         </div>
 
+        {/* ✅ Real-time alert banner */}
+        {alertMessage && (
+          <div
+            style={{
+              backgroundColor: "orange",
+              color: "black",
+              padding: "6px 10px",
+              marginBottom: "8px",
+              borderRadius: "6px",
+              fontWeight: "bold",
+            }}
+          >
+            {alertMessage}
+          </div>
+        )}
+
         <VideoPlayer videoRef={videoRef} />
         <DetectionCanvas videoRef={videoRef} faces={faces} objects={objects} />
         <ControlPanel
@@ -167,6 +189,7 @@ const ProctorPage = ({ candidateName }) => {
           disabled={!modelsLoaded}
         />
       </div>
+
       <div style={{ width: 360 }}>
         <h3>Events</h3>
         <EventLog events={events} />
