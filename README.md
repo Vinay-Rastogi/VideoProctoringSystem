@@ -83,8 +83,8 @@ project-root/
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/your-username/ai-proctoring.git
-cd ai-proctoring
+https://github.com/Vinay-Rastogi/VideoProctoringSystem.git
+cd VideoProctoringSystem
 ```
 
 ### 2️⃣ Backend Setup
@@ -96,7 +96,7 @@ npm install
 Create a `.env` file:
 ```env
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/proctoring
+MONGO_URI=yourMongoURI
 ```
 
 Run the backend:
