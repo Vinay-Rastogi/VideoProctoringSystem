@@ -12,7 +12,7 @@ exports.getReport = async (req, res) => {
 
 exports.getAllReports = async (req, res) => {
   try {
-    const events = await Event.find({}).sort({ at: 1 }); // ✅ all candidates, sorted oldest→newest
+    const events = await Event.find({}).sort({ at: 1 }); // all candidates, sorted oldest→newest
     const pdf = await generateReportPDF("All Candidates", events);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=all-candidates-report.pdf");

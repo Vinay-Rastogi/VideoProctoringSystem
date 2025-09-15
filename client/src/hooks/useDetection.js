@@ -117,11 +117,11 @@ const useDetection = (videoRef, onEvent, active = true) => {
           const rightEAR = calcEAR(rightEyePoints);
           const avgEAR = (leftEAR + rightEAR) / 2;
 
-          // Debug: watch EAR values live in console
+          
           // console.log("EAR:", avgEAR.toFixed(3));
 
           // If eyes are closed for >1.5s
-          if (avgEAR < 0.28) { // 👈 Adjust threshold if needed (0.25–0.3)
+          if (avgEAR < 0.21) { 
             if (!eyeClosureStartRef.current) {
               eyeClosureStartRef.current = Date.now();
             } else if (Date.now() - eyeClosureStartRef.current > 1500) {
@@ -134,7 +134,7 @@ const useDetection = (videoRef, onEvent, active = true) => {
         }
       }
 
-      // ===== Object Detection (20% of frames) =====
+      // ===== Object Detection =====
       if (Math.random() < 0.2) {
         const objPreds = await modelsRef.current.objectModel.detect(video);
         setObjects(objPreds);

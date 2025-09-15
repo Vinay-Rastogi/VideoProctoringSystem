@@ -44,10 +44,19 @@ const ProctorPage = ({ candidateName }) => {
 
     if (type === "DrowsinessDetected")
       showAlert("⚠️ Candidate may be drowsy (eyes closed > 1.5s)");
-    if (type === "SuspiciousObject" && meta?.class)
+
+    else if (type === "SuspiciousObject" && meta?.class)
       showAlert(`⚠️ Suspicious Object Detected: ${meta.class}`);
-    if (type === "LookingAway")
+
+    else if (type === "LookingAway")
       showAlert("⚠️ Candidate is not looking at the screen (>5s)");
+
+    else if (type === "NoFaceDetected")
+      showAlert("⚠️ Candidate is not on the camera frame (>10s)");
+
+    else if (type === "MultipleFacesDetected")
+      showAlert("⚠️ Multiple faces detected on camera");
+    
   };
 
   const showAlert = (msg) => {

@@ -18,8 +18,8 @@ const DetectionCanvas = ({ videoRef, faces, objects }) => {
       const videoWidth = video.videoWidth;
       const videoHeight = video.videoHeight;
 
-      canvas.width = video.clientWidth;   // 👈 displayed width
-      canvas.height = video.clientHeight; // 👈 displayed height
+      canvas.width = video.clientWidth;   // displayed width
+      canvas.height = video.clientHeight; // displayed height
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -27,7 +27,7 @@ const DetectionCanvas = ({ videoRef, faces, objects }) => {
       const scaleX = canvas.width / videoWidth;
       const scaleY = canvas.height / videoHeight;
 
-      // 🎯 Draw face bounding boxes
+      // Draw face bounding boxes
       faces.forEach((face) => {
         const xs = face.keypoints.map((p) => p.x * scaleX);
         const ys = face.keypoints.map((p) => p.y * scaleY);
@@ -41,7 +41,7 @@ const DetectionCanvas = ({ videoRef, faces, objects }) => {
         ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
       });
 
-      // 🎯 Draw suspicious objects
+      // Draw suspicious objects
       objects.forEach((obj) => {
         ctx.strokeStyle = "red";
         ctx.lineWidth = 2;
@@ -69,12 +69,12 @@ const DetectionCanvas = ({ videoRef, faces, objects }) => {
     <canvas
       ref={canvasRef}
       style={{
-        position: "absolute", // ✅ overlay on video
+        position: "absolute", 
         top: 0,
         left: 0,
-        width: "100%", // auto-resizes with video
+        width: "100%", 
         height: "100%",
-        pointerEvents: "none", // ✅ allows clicks to pass through
+        pointerEvents: "none", 
       }}
     />
   );

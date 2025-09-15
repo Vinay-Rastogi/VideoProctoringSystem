@@ -16,7 +16,7 @@ const generateReportPDF = async (candidateName, events) => {
       doc.fontSize(20).text("Proctoring Report", { align: "center" }).moveDown();
 
       if (candidateName === "All Candidates") {
-        // ✅ Group events by candidate
+        // Group events by candidate
         const grouped = events.reduce((acc, e) => {
           const name = e.candidateName || "Unknown Candidate";
           acc[name] = acc[name] || [];
@@ -49,7 +49,7 @@ const generateReportPDF = async (candidateName, events) => {
         });
 
       } else {
-        // ✅ Single candidate report
+        //  Single candidate report
         doc.fontSize(12).text(`Candidate: ${candidateName}`);
         const duration = computeDuration(events);
         doc.text(`Interview Duration: ${duration}`);

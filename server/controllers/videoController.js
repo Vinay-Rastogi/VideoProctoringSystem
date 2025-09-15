@@ -2,7 +2,7 @@ const path = require("path");
 const multer = require("multer");
 const Event = require("../models/Event");
 
-// Configure Multer storage
+// Configuring Multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "..", "uploads")); // Save in /server/uploads
