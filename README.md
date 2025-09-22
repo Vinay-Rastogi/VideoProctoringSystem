@@ -6,6 +6,11 @@ The system monitors candidates during online interviews or exams, detects suspic
 
 ---
 
+## 🌍 Live Demo
+🚀 **Try it here:** [AI Proctoring System](https://videoproctoring.netlify.app/)
+
+---
+
 ## 🚀 Features
 
 ✅ **Real-time Camera Monitoring**  
