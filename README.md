@@ -161,7 +161,3 @@ Developed by **Vinay Rastogi**
 Built with ❤️ using React, Node.js, and TensorFlow.js , MongoDb
 
 ---
-
-## 📜 License
-
-MIT License – feel free to modify and use for educational or commercial purposes.
